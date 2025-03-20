@@ -21,6 +21,7 @@ function App() {
     setOrder(prevOrder => prevOrder === 'ASC' ? 'DESC' : 'ASC');
   };
 
+
   useEffect(() => {
     const fetchCalls = async () => {
       try {
