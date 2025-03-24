@@ -117,7 +117,7 @@ function App() {
                 source: {
                   name: source[randomSource],
                 },
-                audioUrl, // Добавляем ссылку на аудио, если есть
+                audioUrl,
               };
             })
         );
@@ -284,8 +284,9 @@ console.log(calls)
                           <AudioPlayer
                               id={call.id}
                               idAudio={call.audioUrl}
+                              time={formatTime(call.time)}
                           />
-                          {formatTime(call.time)}</>
+                        </>
                     ) : null
                   }
                 </div>
