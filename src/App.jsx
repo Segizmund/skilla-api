@@ -4,10 +4,25 @@ import outgoing from './assets/icons/outgoing.svg'
 import missed from './assets/icons/missed.svg'
 import missedCall from './assets/icons/missed-call.svg'
 import CustomSelect from './components/CustomSelect';
+import AudioPlayer from './components/AudioPlayer';
 
 import './App.css'
 
 function App() {
+
+  function todayFunc(perDay) {
+    let today = new Date();
+
+    if (perDay !== null && perDay !== undefined) {
+      today.setDate(today.getDate() - perDay);
+    }
+
+    let year = today.getFullYear();
+    let month = String(today.getMonth() + 1).padStart(2, '0');
+    let day = String(today.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
 
   const [calls, setCalls] = useState([]);
   const [order, setOrder] = useState('ASC');
@@ -15,6 +30,7 @@ function App() {
   const [selectedValue, setSelectedValue] = useState('');
   const [filter, setFilter] = useState(false);
 
+  const [currentDay, setCurrentDay] = useState(todayFunc());
   const [inOut, setInOut] = useState('');
 
   const toggleOrder = () => {
@@ -25,7 +41,7 @@ function App() {
   useEffect(() => {
     const fetchCalls = async () => {
       try {
-        let  url = `https://api.skilla.ru/mango/getList?limit=150&order=${order}&sort_by=${sortBy}`;
+        let url = `https://api.skilla.ru/mango/getList?limit=150&order=${order}&sort_by=${sortBy}`;
         if (inOut && inOut.trim() !== '') {
           url += `&in_out=${inOut}`;
         }
@@ -43,49 +59,77 @@ function App() {
 
         const data = await response.json();
 
-        const ratedResults = data.results.map(item => {
-          const random = Math.floor(Math.random() * 3) + 1;
-          const messages = {
-            1: 'Отлично',
-            2: 'Нормально',
-            3: 'Плохо',
-          };
-          const styles = {
-            1: 'bg-[#DBF8EF] text-[#00A775] border border-[#00A775] rounded-md px-2 py-1.5',
-            2: 'bg-[#E8EAF6] text-[#3F51B5] border border-[#3F51B5] rounded-md px-2 py-1.5',
-            3: 'bg-[#FEE9EF] text-[#EC3665] border border-[#EC3665] rounded-md px-2 py-1.5',
-          };
+        // Добавляем запрос для получения записи, если record существует
+        const ratedResults = await Promise.all(
+            data.results.map(async (item) => {
+              const random = Math.floor(Math.random() * 3) + 1;
+              const messages = {
+                1: 'Отлично',
+                2: 'Нормально',
+                3: 'Плохо',
+              };
+              const styles = {
+                1: 'bg-[#DBF8EF] text-[#00A775] border border-[#00A775] rounded-md px-2 py-1.5',
+                2: 'bg-[#E8EAF6] text-[#3F51B5] border border-[#3F51B5] rounded-md px-2 py-1.5',
+                3: 'bg-[#FEE9EF] text-[#EC3665] border border-[#EC3665] rounded-md px-2 py-1.5',
+              };
 
-          const randomSource = Math.floor(Math.random() * 5) + 1;
-          const source ={
-            1: 'Rabota.ru',
-            2: 'Санкт-Петербург',
-            3: 'Google',
-            4: 'Yandex',
-            5: '',
-          };
+              const randomSource = Math.floor(Math.random() * 5) + 1;
+              const source = {
+                1: 'Rabota.ru',
+                2: 'Санкт-Петербург',
+                3: 'Google',
+                4: 'Yandex',
+                5: '',
+              };
 
-          return {
-            ...item,
-            rating: {
-              value: random,
-              message: messages[random],
-              style: styles[random],
-            },
-            source: {
-              name: source[randomSource],
-            },
-          };
-        });
+              // Если есть record, получаем аудиофайл
+              let audioUrl = null;
+              if (item.record) {
+                console.log(item.id);
+                try {
+                  const recordResponse = await fetch(
+                      `https://api.skilla.ru/mango/getRecord?record=${item.record}`,
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': 'Bearer testtoken',
+                          'Content-Type': 'audio/mpeg', // Skilla обычно возвращает audio/mpeg
+                        },
+                      }
+                  );
+                  if (recordResponse.ok) {
+                    const audioBlob = await recordResponse.blob();
+                    audioUrl = URL.createObjectURL(audioBlob); // Создаём ссылку для <audio>
+                  }
+                } catch (e) {
+                  console.error('Ошибка загрузки записи:', e);
+                }
+              }
+
+              return {
+                ...item,
+                rating: {
+                  value: random,
+                  message: messages[random],
+                  style: styles[random],
+                },
+                source: {
+                  name: source[randomSource],
+                },
+                audioUrl, // Добавляем ссылку на аудио, если есть
+              };
+            })
+        );
 
         setCalls(ratedResults);
-      }catch (e){
+      } catch (e) {
         console.error(e);
       }
     };
 
     fetchCalls();
-  }, [order,sortBy,inOut]);
+  }, [order, sortBy, inOut]);
 
   const options = [
     { value: '', label: 'Все типы' },
@@ -123,13 +167,41 @@ console.log(calls)
             <div className={'group'}>
               {
                 filter ? (
-                    <button className={'text-[#5E7793] cursor-pointer group-hover:text-[#015EF5] transition duration-300 ease-linear'}
-                            onClick={() => {
-                              setFilter(false);
-                              setSelectedValue('');
-                              setInOut('')
-                            }}>
-                      Сбросить фильтры <span className={'text-[#ADBFDF] group-hover:text-[#015EF5] transition duration-300 ease-linear'}>x</span>
+                    <button
+                        className={'text-[#5E7793] cursor-pointer group-hover:text-[#015EF5] transition duration-300 ease-linear'}
+                        onClick={() => {
+                          setFilter(false);
+                          setSelectedValue('');
+                          setInOut('')
+                        }}>
+                      Сбросить фильтры <span
+                        className={'text-[#ADBFDF] group-hover:text-[#015EF5] transition duration-300 ease-linear'}>x</span>
+                    </button>
+                ) : null
+              }
+            </div>
+          </div>
+
+          <div className={'flex items-center'}>
+            <CustomSelect
+                options={options}
+                value={selectedValue}
+                onChange={handleSelectChange}
+                setInOut={setInOut}
+                setFilter={setFilter}
+            />
+            <div className={'group'}>
+              {
+                filter ? (
+                    <button
+                        className={'text-[#5E7793] cursor-pointer group-hover:text-[#015EF5] transition duration-300 ease-linear'}
+                        onClick={() => {
+                          setFilter(false);
+                          setSelectedValue('');
+                          setInOut('')
+                        }}>
+                      Сбросить фильтры <span
+                        className={'text-[#ADBFDF] group-hover:text-[#015EF5] transition duration-300 ease-linear'}>x</span>
                     </button>
                 ) : null
               }
@@ -141,10 +213,10 @@ console.log(calls)
             <div className={'flex items-center text-[#5E7793]'}>Тип</div>
             <div className={'flex items-center text-[#5E7793]'}>
               <button onClick={() => {
-              toggleOrder();
-              setSortBy('date');
-            }}>
-              Время: {order === 'ASC' ? '↑' : '↓'}
+                toggleOrder();
+                setSortBy('date');
+              }}>
+                Время: {order === 'ASC' ? '↑' : '↓'}
               </button>
             </div>
             <div className={'flex items-center text-[#5E7793]'}>Сотрудники</div>
@@ -208,7 +280,12 @@ console.log(calls)
                 <div className={'flex items-center justify-end'}>
                   {
                     formatTime(call.time) !== '00:00' ? (
-                        <>{formatTime(call.time)}</>
+                        <>
+                          <AudioPlayer
+                              id={call.id}
+                              idAudio={call.audioUrl}
+                          />
+                          {formatTime(call.time)}</>
                     ) : null
                   }
                 </div>
