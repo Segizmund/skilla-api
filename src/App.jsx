@@ -83,10 +83,9 @@ function App() {
                 5: '',
               };
 
-              // Если есть record, получаем аудиофайл
+
               let audioUrl = null;
               if (item.record) {
-                console.log(item.id);
                 try {
                   const recordResponse = await fetch(
                       `https://api.skilla.ru/mango/getRecord?record=${item.record}`,
@@ -94,13 +93,13 @@ function App() {
                         method: 'POST',
                         headers: {
                           'Authorization': 'Bearer testtoken',
-                          'Content-Type': 'audio/mpeg', // Skilla обычно возвращает audio/mpeg
+                          'Content-Type': 'audio/mpeg',
                         },
                       }
                   );
                   if (recordResponse.ok) {
                     const audioBlob = await recordResponse.blob();
-                    audioUrl = URL.createObjectURL(audioBlob); // Создаём ссылку для <audio>
+                    audioUrl = URL.createObjectURL(audioBlob);
                   }
                 } catch (e) {
                   console.error('Ошибка загрузки записи:', e);
@@ -130,6 +129,14 @@ function App() {
 
     fetchCalls();
   }, [order, sortBy, inOut]);
+
+
+    const optionsDays = [
+      { value: currentDay, label: currentDay },
+      { value: '1', label: 'Неделя' },
+      { value: '0', label: 'Месяц' },
+      { value: '0', label: 'Год' },
+    ];
 
   const options = [
     { value: '', label: 'Все типы' },
@@ -184,8 +191,9 @@ console.log(calls)
 
           <div className={'flex items-center'}>
             <CustomSelect
-                options={options}
+                options={optionsDays}
                 value={selectedValue}
+                currentDay={currentDay}
                 onChange={handleSelectChange}
                 setInOut={setInOut}
                 setFilter={setFilter}

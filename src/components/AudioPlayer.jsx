@@ -55,6 +55,14 @@ function AudioPlayer({ idAudio, id, time }) {
         document.body.removeChild(link);
     };
 
+    const handleClose = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            setIsPlaying(false);
+        }
+    };
+
     return (
         <div className={'flex items-center'}>
             <audio
@@ -111,7 +119,8 @@ function AudioPlayer({ idAudio, id, time }) {
                 </button>
 
                 {/* Кнопка закрытия */}
-                <button className={'p-1 cursor-pointer hover:bg-gray-100 rounded'}>
+                <button onClick={handleClose}
+                    className={'p-1 cursor-pointer hover:bg-gray-100 rounded'}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#002CFB"
                          className="bi bi-x-lg" viewBox="0 0 16 16">
                         <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>

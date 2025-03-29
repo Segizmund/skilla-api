@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-function CustomSelect({ options, value, onChange, setInOut,setFilter }) {
+function CustomSelect({ options, value, onChange, setInOut,setFilter, currentDay }) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
-    console.log(value)
     const handleToggle = () => {
         setIsOpen(!isOpen);
     };
@@ -14,7 +13,7 @@ function CustomSelect({ options, value, onChange, setInOut,setFilter }) {
         optionValue === '' ? setFilter(false) : setFilter(true);
         setIsOpen(false);
     };
-
+    currentDay ? value = currentDay : '';
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -27,7 +26,6 @@ function CustomSelect({ options, value, onChange, setInOut,setFilter }) {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
-
     return (
         <div className="custom-select" ref={dropdownRef}>
             <div className={`select-header ${value !== '' ? 'selected' : ''}`} onClick={handleToggle}>
@@ -35,7 +33,7 @@ function CustomSelect({ options, value, onChange, setInOut,setFilter }) {
                     ? options.find(option => option.value === value)?.label
                     : options.length > 0
                         ? options[0].label
-                        : 'Все типы'}
+                        : options[0].label }
                 <span className={`arrow ${isOpen ? 'open' : ''}`}></span>
             </div>
             {isOpen && (
